@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    container_name: jenkins
+    volumes:
+      # Map a local directory to the Jenkins home to persist data
+      - ./jenkins-data:/var/jenkins_home
+      # Mount the Docker socket to allow Jenkins to run Docker commands
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins-net
+
+  agent:
+    image: jenkins/ssh-agent:latest-jdk21
+    privileged: true
+    user: root
+    container_name: agent
+    expose:
+      - 22 # Expose port 22 for SSH connection
+    environment:
+      # Pass the public key as an environment variable for controller authentication
+      - JENKINS_AGENT_SSH_PUBKEY= #parameterize this later
+    volumes:
+      # Map a local directory for the agent's remote root directory
+      - ./agent-data:/home/jenkins/agent
+      # Optionally, mount the Docker socket if the agent needs to build Docker images
+      # - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins-net
+
+networks:
+  jenkins-net:
+    driver: bridge
